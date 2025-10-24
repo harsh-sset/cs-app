@@ -1,7 +1,21 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { getDatabaseConnection } from '@/lib/database';
 
 export async function GET() {
+  // Check authentication
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Unauthorized',
+        message: 'Authentication required'
+      },
+      { status: 401 }
+    );
+  }
+
   const config = {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,

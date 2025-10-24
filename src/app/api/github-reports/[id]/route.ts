@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { getDatabaseConnection } from '@/lib/database';
 import { RunResult } from '../typing';
 
@@ -7,6 +8,19 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Check authentication
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Unauthorized',
+          message: 'Authentication required'
+        },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const reportId = parseInt(id);
     
