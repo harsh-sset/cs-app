@@ -10,7 +10,6 @@ export default function Home() {
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
 
-  // Redirect to dashboard if user is signed in
   useEffect(() => {
     if (isLoaded && isSignedIn) {
       router.push("/dashboard");
