@@ -71,8 +71,7 @@ class DatabaseConnection {
     let sql = `
       SELECT 
         *
-      FROM github_events 
-      WHERE customer_slug = 'harsh_sset'
+      FROM github_events
       LIMIT 100
     `;
     
@@ -85,7 +84,7 @@ class DatabaseConnection {
       SELECT 
         *
       FROM github_events 
-      WHERE id = ? AND customer_slug = 'harsh_sset'
+      WHERE id = ?
       LIMIT 1
     `;
     
