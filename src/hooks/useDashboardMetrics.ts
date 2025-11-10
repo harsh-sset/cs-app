@@ -7,12 +7,17 @@ export interface DashboardMetrics {
   totalUniquePRs: number;
 }
 
-export function useDashboardMetrics() {
+export function useDashboardMetrics(enabled: boolean = true) {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
     const fetchMetrics = async () => {
       try {
         setLoading(true);
@@ -33,7 +38,7 @@ export function useDashboardMetrics() {
     };
 
     fetchMetrics();
-  }, []);
+  }, [enabled]);
 
   return { metrics, loading, error };
 }

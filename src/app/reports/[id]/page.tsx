@@ -1,20 +1,30 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { useGitHubReportById } from "@/hooks/useGitHubData";
-import { RunResult } from "@/app/api/github-reports/typing";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 export default function ReportDetailsPage() {
-  const { user } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const params = useParams();
   const router = useRouter();
   const reportId = params.id as string;
+  const [hasOpenedSignIn, setHasOpenedSignIn] = useState(false);
 
-  const { data, isLoading, error } = useGitHubReportById(parseInt(reportId));
+  const reportIdNumber = useMemo(() => {
+    const parsedId = Number(reportId);
+    return Number.isNaN(parsedId) ? null : parsedId;
+  }, [reportId]);
+
+  const shouldFetchReport = Boolean(isLoaded && isSignedIn && reportIdNumber !== null);
+
+  const { data, isLoading, error } = useGitHubReportById(reportIdNumber, {
+    enabled: shouldFetchReport,
+  });
   const report = data?.data;
   const [expandedTests, setExpandedTests] = useState<number[]>([]);
 
@@ -25,6 +35,85 @@ export default function ReportDetailsPage() {
         : [...prev, testId]
     );
   };
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn && !hasOpenedSignIn) {
+      openSignIn({
+        redirectUrl: `/reports/${reportId}`,
+        afterSignInUrl: `/reports/${reportId}`,
+      });
+      setHasOpenedSignIn(true);
+    }
+
+    if (isLoaded && isSignedIn && hasOpenedSignIn) {
+      setHasOpenedSignIn(false);
+    }
+  }, [hasOpenedSignIn, isLoaded, isSignedIn, openSignIn, reportId]);
+
+  const handleOpenSignIn = () => {
+    openSignIn({
+      redirectUrl: `/reports/${reportId}`,
+      afterSignInUrl: `/reports/${reportId}`,
+    });
+  };
+
+  if (!isLoaded) {
+    return (
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+        <Sidebar />
+        <div className="flex-1 ml-16">
+          <div className="p-8">
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (reportIdNumber === null) {
+    return (
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+        <Sidebar />
+        <div className="flex-1 ml-16">
+          <div className="p-8">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <p className="text-red-600 dark:text-red-400">
+                Invalid report identifier.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+        <Sidebar />
+        <div className="flex-1 ml-16">
+          <div className="p-8 flex items-center justify-center h-full">
+            <div className="max-w-md w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6 text-center">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
+                Sign in required
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Please sign in with your Clerk account to access this report.
+              </p>
+              <button
+                onClick={handleOpenSignIn}
+                className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition"
+              >
+                Sign in
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

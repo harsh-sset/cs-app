@@ -22,7 +22,7 @@ export function useGitHubInsights() {
 }
 
 // GitHub Reports Hook
-export function useGitHubReports() {
+export function useGitHubReports(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...queryKeys.githubReports],
     queryFn: async () => {
@@ -31,20 +31,29 @@ export function useGitHubReports() {
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
     retry: 2,
+    enabled: options?.enabled ?? true,
   });
 }
 
 // GitHub Report by ID Hook
-export function useGitHubReportById(id: number) {
+export function useGitHubReportById(
+  id: number | null,
+  options?: {
+    enabled?: boolean;
+  }
+) {
   return useQuery({
     queryKey: [...queryKeys.githubReports, id],
     queryFn: async () => {
+      if (!id) {
+        throw new Error("Report ID is required");
+      }
       const response = await api.getGitHubReportById(id);
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
-    enabled: !!id, // Only run if id is provided
+    enabled: !!id && (options?.enabled ?? true), // Only run if id is provided and enabled
   });
 }
 

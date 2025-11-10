@@ -1,20 +1,89 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { useGitHubReports } from "@/hooks/useGitHubData";
 import { RunResult } from "@/app/api/github-reports/typing";
 
 export default function ReportsPage() {
-  const { user } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const router = useRouter();
+  const [hasOpenedSignIn, setHasOpenedSignIn] = useState(false);
 
-  const { data: reports, isLoading, error } = useGitHubReports()
+  const shouldFetchReports = Boolean(isLoaded && isSignedIn);
+
+  const { data: reports, isLoading, error } = useGitHubReports({
+    enabled: shouldFetchReports,
+  });
 
   const handleReportClick = (reportId: number) => {
     router.push(`/reports/${reportId}`);
   };
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn && !hasOpenedSignIn) {
+      openSignIn({
+        redirectUrl: "/reports",
+        afterSignInUrl: "/reports",
+      });
+      setHasOpenedSignIn(true);
+    }
+
+    if (isLoaded && isSignedIn && hasOpenedSignIn) {
+      setHasOpenedSignIn(false);
+    }
+  }, [hasOpenedSignIn, isLoaded, isSignedIn, openSignIn]);
+
+  const handleOpenSignIn = () => {
+    openSignIn({
+      redirectUrl: "/reports",
+      afterSignInUrl: "/reports",
+    });
+  };
+
+  if (!isLoaded) {
+    return (
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+        <Sidebar />
+        <div className="flex-1 ml-16">
+          <div className="p-8">
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+        <Sidebar />
+        <div className="flex-1 ml-16">
+          <div className="p-8 flex items-center justify-center h-full">
+            <div className="max-w-md w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6 text-center">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
+                Sign in required
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Please sign in with your Clerk account to view reports.
+              </p>
+              <button
+                onClick={handleOpenSignIn}
+                className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition"
+              >
+                Sign in
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
